@@ -15,6 +15,11 @@ on:
         required: false
         type: string
         default: 'version'
+      mise-setup-tasks:
+        description: 'JSON array of mise setup tasks to run sequentially before other tasks (e.g., ["install:ts", "install:go"])'
+        required: false
+        type: string
+        default: '[]'
       mise-tasks:
         description: 'JSON array of mise tasks to run in parallel (e.g., ["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"])'
         required: false
@@ -122,7 +127,19 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # ratchet:actions/cache@v5
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+      - id: version
+        run: echo "version=$(mise run ${{ inputs.mise-task-version }})" >> ${GITHUB_OUTPUT}
+      - id: name
+        run: echo "name=${{ github.event.repository.name }}" >> ${GITHUB_OUTPUT}
+
+  setup:
+    name: Setup
+    if: ${{ inputs.mise-setup-tasks != '[]' }}
+    runs-on: ${{ inputs.runner-size }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -130,14 +147,33 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/pnpm-lock.yaml') != ''
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/package-lock.json') != ''
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
-      - id: version
-        run: echo "version=$(mise run ${{ inputs.mise-task-version }})" >> ${GITHUB_OUTPUT}
-      - id: name
-        run: echo "name=${{ github.event.repository.name }}" >> ${GITHUB_OUTPUT}
+      - name: Run setup tasks
+        run: |
+          tasks='${{ inputs.mise-setup-tasks }}'
+          echo "$tasks" | jq -r '.[]' | while read task; do
+            echo "Running setup task: $task"
+            mise run "$task"
+          done
 
   lint:
     name: Check
+    needs: [setup]
+    if: ${{ always() && (needs.setup.result == 'success' || needs.setup.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -145,7 +181,7 @@ jobs:
     runs-on: ${{ inputs.runner-size }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
-      - uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # ratchet:actions/cache@v5
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -153,16 +189,40 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/pnpm-lock.yaml') != ''
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/package-lock.json') != ''
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+      - name: Run setup tasks
+        if: ${{ inputs.mise-setup-tasks != '[]' }}
+        run: |
+          tasks='${{ inputs.mise-setup-tasks }}'
+          echo "$tasks" | jq -r '.[]' | while read task; do
+            echo "Running setup task: $task"
+            mise run "$task"
+          done
       - name: Run ${{ matrix.task }}
         run: mise run ${{ matrix.task }}
 
   build:
     name: Build
+    needs: [setup]
+    if: ${{ always() && (needs.setup.result == 'success' || needs.setup.result == 'skipped') }}
     runs-on: ${{ inputs.runner-size }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
-      - uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # ratchet:actions/cache@v5
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -170,7 +230,29 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/pnpm-lock.yaml') != ''
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # ratchet:actions/cache@v4
+        if: hashFiles('**/package-lock.json') != ''
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+      - name: Run setup tasks
+        if: ${{ inputs.mise-setup-tasks != '[]' }}
+        run: |
+          tasks='${{ inputs.mise-setup-tasks }}'
+          echo "$tasks" | jq -r '.[]' | while read task; do
+            echo "Running setup task: $task"
+            mise run "$task"
+          done
       - run: mise run ${{ inputs.mise-task-build }}
 
   docker:

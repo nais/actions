@@ -131,15 +131,16 @@ jobs:
 
 ### Key Inputs
 
-| Input               | Description          | Default                                                            |
-| ------------------- | -------------------- | ------------------------------------------------------------------ |
-| `builds-chart`      | Build Helm chart     | `false`                                                            |
-| `deploys-to-fasit`  | Deploy to Fasit      | `false`                                                            |
-| `chart-path`        | Helm chart directory | `./charts`                                                         |
-| `chart-repo`        | Chart repository     | `nais-io/nais/charts`                                              |
-| `mise-tasks`        | Quality check tasks  | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
-| `mise-task-build`   | Build task name      | `build`                                                            |
-| `mise-task-version` | Version task name    | `version`                                                          |
+| Input               | Description                                      | Default                                                            |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| `builds-chart`      | Build Helm chart                                 | `false`                                                            |
+| `deploys-to-fasit`  | Deploy to Fasit                                  | `false`                                                            |
+| `chart-path`        | Helm chart directory                             | `./charts`                                                         |
+| `chart-repo`        | Chart repository                                 | `nais-io/nais/charts`                                              |
+| `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install) | `[]`                                                               |
+| `mise-tasks`        | Quality check tasks                              | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
+| `mise-task-build`   | Build task name                                  | `build`                                                            |
+| `mise-task-version` | Version task name                                | `version`                                                          |
 
 ### Required Setup
 
@@ -180,17 +181,18 @@ jobs:
 
 ### Key Inputs
 
-| Input               | Description            | Default                                                            |
-| ------------------- | ---------------------- | ------------------------------------------------------------------ |
-| `deploys-to-nais`   | Enable NAIS deployment | `false`                                                            |
-| `nais-clusters`     | JSON array of clusters | `["dev-gcp"]`                                                      |
-| `nais-team`         | Team name              | `nais`                                                             |
-| `nais-resource`     | Path to app manifest   | `.nais/app.yaml`                                                   |
-| `nais-vars`         | Path to cluster vars   | `.nais/${{ matrix.cluster }}.yaml`                                 |
-| `deploy-pr-to-dev`  | Deploy PRs to dev      | `false`                                                            |
-| `mise-tasks`        | Quality check tasks    | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
-| `mise-task-build`   | Build task name        | `build`                                                            |
-| `mise-task-version` | Version task name      | `version`                                                          |
+| Input               | Description                                      | Default                                                            |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| `deploys-to-nais`   | Enable NAIS deployment                           | `false`                                                            |
+| `nais-clusters`     | JSON array of clusters                           | `["dev-gcp"]`                                                      |
+| `nais-team`         | Team name                                        | `nais`                                                             |
+| `nais-resource`     | Path to app manifest                             | `.nais/app.yaml`                                                   |
+| `nais-vars`         | Path to cluster vars                             | `.nais/${{ matrix.cluster }}.yaml`                                 |
+| `deploy-pr-to-dev`  | Deploy PRs to dev                                | `false`                                                            |
+| `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install) | `[]`                                                               |
+| `mise-tasks`        | Quality check tasks                              | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
+| `mise-task-build`   | Build task name                                  | `build`                                                            |
+| `mise-task-version` | Version task name                                | `version`                                                          |
 
 ### Required Setup
 
@@ -329,11 +331,39 @@ run = "go test -race ./..."
 run = "go build -o bin/app ./cmd/app"
 ```
 
-Then configure the workflow to run your specific tasks:
+**Multi-language Example (Go + TypeScript):**
+
+```toml
+[tasks.version]
+run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+
+# Setup tasks - run before checks
+[tasks."install:ts"]
+run = "pnpm install --frozen-lockfile"
+
+# Quality checks
+[tasks."lint:go"]
+run = "golangci-lint run"
+
+[tasks."lint:ts"]
+run = "pnpm run lint"
+
+[tasks."test:go"]
+run = "go test ./..."
+
+[tasks."test:ts"]
+run = "pnpm run test"
+
+[tasks.build]
+run = "go build -o bin/app ./cmd/app && pnpm run build"
+```
+
+Then configure the workflow:
 
 ```yaml
 with:
-  mise-tasks: '["lint", "test"]'  # Only run the tasks you've defined
+  mise-setup-tasks: '["install:ts"]'  # Runs first
+  mise-tasks: '["lint:go", "lint:ts", "test:go", "test:ts"]'  # Run in parallel
 ```
 
 ### Basic Usage

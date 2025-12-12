@@ -1,25 +1,302 @@
 # NAIS Reusable GitHub Actions
 
-A collection of reusable GitHub Actions workflows for NAIS projects.
+Reusable workflows for NAIS projects using [mise](https://mise.jdx.dev/) for task management.
 
-## Build and Deploy with mise to Fasit
+## Table of Contents
 
-A comprehensive, opinionated reusable workflow for projects that use [mise](https://mise.jdx.dev/) for task management. While originally designed for Go projects, this workflow is language-agnostic and can be used with any mise-managed project. It handles quality checks, building, Docker image creation, Helm chart publishing, and deployment to Fasit.
+- [⎈ mise-build-deploy-fasit.yaml](#-mise-build-deploy-fasityaml) - Fasit with Helm charts
+- [🚀 mise-build-deploy-nais.yaml](#-mise-build-deploy-naisyaml) - Standard NAIS deployment
+- [Common Features](#common-features) · [Prerequisites](#prerequisites) · [Best Practices](#best-practices)
 
-### Features
+---
 
-- ✅ **Parallel Quality Checks**: Runs quality checks in parallel using mise tasks (configurable per project)
-- 🏗️ **Build Management**: Automated builds with mise
-- 🐳 **Docker Support**: Build and push Docker images to Google Artifact Registry
-- ⎈ **Helm Chart Support**: Package and publish Helm charts
-- 🚀 **Deployment**: Optional deployment to Fasit
-- 🏷️ **Version Tagging**: Automatic git tag creation
-- 💾 **Caching**: Optimized build caching for faster runs
-- 🔒 **Security**: Workload identity federation for GCP authentication
+## Available Workflows
 
-### Prerequisites
+### ⎈ mise-build-deploy-fasit.yaml
 
-Your project must have a `mise.toml` file defining at minimum:
+Fasit platform deployment workflow with Helm chart support.
+
+```yaml
+uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@main
+with:
+  builds-chart: true
+  deploys-to-fasit: true
+secrets:
+  NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+**Features:**
+
+- ✅ Helm chart packaging and publishing
+- ✅ Fasit deployment support
+- ✅ Single-cluster deployment model
+
+[View full documentation](#mise-build-deploy-fasityaml-1)
+
+---
+
+### 🚀 mise-build-deploy-nais.yaml
+
+Standard NAIS deployment workflow using `nais/deploy`.
+
+```yaml
+uses: nais/actions/.github/workflows/mise-build-deploy-nais.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-nais.yaml@main
+with:
+  deploys-to-nais: true
+  nais-team: my-team
+  nais-clusters: '["dev-gcp", "prod-gcp"]'
+secrets:
+  NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+**Features:**
+
+- ✅ Multi-cluster deployment (dev-gcp, prod-gcp, etc.)
+- ✅ Optional PR deployments to dev
+- ✅ Uses `.nais/app.yaml` manifests
+
+[View full documentation](#mise-build-deploy-naisyaml-1)
+
+---
+
+## Common Features
+
+Both workflows share these capabilities:
+
+- 🔧 **Parallel Quality Checks**: Run mise tasks in parallel (lint, test, etc.)
+- 🏗️ **Build Management**: Execute your mise build task
+- 🐳 **Docker**: Build and push to Google Artifact Registry
+- 🏷️ **Git Tags**: Optional automatic tagging
+- 💾 **Caching**: Optimized build caching
+- 🔒 **Security**: GCP Workload Identity Federation
+
+## Prerequisites
+
+Both workflows require a `mise.toml` with minimum tasks:
+
+```toml
+[tasks.version]
+run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+
+[tasks.build]
+run = "go build -o bin/app ./cmd/app"
+```
+
+**Recommended - add quality checks:**
+
+```toml
+[tasks.lint]
+run = "golangci-lint run"
+
+[tasks.test]
+run = "go test -race ./..."
+```
+
+Configure which tasks to run:
+
+```yaml
+with:
+  mise-tasks: '["lint", "test"]'
+```
+
+---
+
+## mise-build-deploy-fasit.yaml
+
+Deploy to Fasit with Helm chart support.
+
+### Quick Start
+
+```yaml
+name: Build and Deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@main
+    with:
+      builds-chart: true
+      deploys-to-fasit: true
+      chart-path: './charts'
+      mise-tasks: '["lint", "test"]'
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+### Key Inputs
+
+| Input               | Description          | Default                                                            |
+| ------------------- | -------------------- | ------------------------------------------------------------------ |
+| `builds-chart`      | Build Helm chart     | `false`                                                            |
+| `deploys-to-fasit`  | Deploy to Fasit      | `false`                                                            |
+| `chart-path`        | Helm chart directory | `./charts`                                                         |
+| `chart-repo`        | Chart repository     | `nais-io/nais/charts`                                              |
+| `mise-tasks`        | Quality check tasks  | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
+| `mise-task-build`   | Build task name      | `build`                                                            |
+| `mise-task-version` | Version task name    | `version`                                                          |
+
+### Required Setup
+
+1. **Helm Chart**: Create chart in `./charts/{repo-name}/`
+2. **GCP Service Account**: `gh-{repo-name}@nais-io.iam.gserviceaccount.com`
+3. **Workload Identity**: Configure federation
+
+---
+
+## mise-build-deploy-nais.yaml
+
+Deploy to NAIS clusters using standard `nais/deploy`.
+
+### Quick Start
+
+```yaml
+name: Build and Deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: nais/actions/.github/workflows/mise-build-deploy-nais.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-nais.yaml@main
+    with:
+      deploys-to-nais: true
+      nais-team: my-team
+      nais-clusters: '["dev-gcp", "prod-gcp"]'
+      mise-tasks: '["lint", "test"]'
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+### Key Inputs
+
+| Input               | Description            | Default                                                            |
+| ------------------- | ---------------------- | ------------------------------------------------------------------ |
+| `deploys-to-nais`   | Enable NAIS deployment | `false`                                                            |
+| `nais-clusters`     | JSON array of clusters | `["dev-gcp"]`                                                      |
+| `nais-team`         | Team name              | `nais`                                                             |
+| `nais-resource`     | Path to app manifest   | `.nais/app.yaml`                                                   |
+| `nais-vars`         | Path to cluster vars   | `.nais/${{ matrix.cluster }}.yaml`                                 |
+| `deploy-pr-to-dev`  | Deploy PRs to dev      | `false`                                                            |
+| `mise-tasks`        | Quality check tasks    | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
+| `mise-task-build`   | Build task name        | `build`                                                            |
+| `mise-task-version` | Version task name      | `version`                                                          |
+
+### Required Setup
+
+1. **NAIS Manifests**: Create `.nais/app.yaml` and cluster-specific vars (e.g., `.nais/dev-gcp.yaml`)
+2. **GCP Service Account**: `gh-{repo-name}@nais-io.iam.gserviceaccount.com`
+3. **Workload Identity**: Configure federation
+
+### Examples
+
+**With PR deployments:**
+
+```yaml
+with:
+  deploys-to-nais: true
+  deploy-pr-to-dev: true
+  nais-team: my-team
+```
+
+**Custom manifests:**
+
+```yaml
+with:
+  deploys-to-nais: true
+  nais-resource: '.nais/nais.yaml'
+  nais-vars: '.nais/vars-${{ matrix.cluster }}.yaml'
+```
+
+---
+
+## Common Inputs
+
+Both workflows share these inputs:
+
+| Input                | Description                                            | Default                        |
+| -------------------- | ------------------------------------------------------ | ------------------------------ |
+| `builds-docker`      | Build Docker image                                     | `true`                         |
+| `dockerfile-path`    | Path to Dockerfile                                     | `./Dockerfile`                 |
+| `docker-context`     | Build context                                          | `.`                            |
+| `creates-git-tag`    | Create git tag (requires `contents: write` permission) | `false`                        |
+| `artifact-registry`  | Registry URL                                           | `europe-north1-docker.pkg.dev` |
+| `artifact-repo`      | Repository path                                        | `nais-io/nais/images`          |
+| `runner-size`        | Runner size                                            | `ubuntu-latest`                |
+| `runner-size-docker` | Docker runner size                                     | `ubuntu-latest-16-cores`       |
+
+## Common Outputs
+
+| Output    | Description                   |
+| --------- | ----------------------------- |
+| `version` | Generated version string      |
+| `name`    | Repository name               |
+| `image`   | Full image reference with tag |
+
+---
+
+## Best Practices
+
+1. **Pin to commit SHA**: Use Ratchet for automatic SHA management
+
+   ```yaml
+   uses: nais/actions/.github/workflows/mise-build-deploy-nais.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-nais.yaml@main
+   ```
+
+2. **Minimal permissions**:
+
+   ```yaml
+   permissions:
+     contents: read
+     id-token: write
+   ```
+
+3. **Customize mise tasks**: Only run what you need
+
+   ```yaml
+   with:
+     mise-tasks: '["lint", "test"]'
+   ```
+
+4. **Use Ratchet or Dependabot**: Keep workflow references updated
+
+## Troubleshooting
+
+**Authentication failures:**
+
+- Verify `NAIS_IO_WORKLOAD_IDENTITY_PROVIDER` secret exists
+- Confirm GCP service account name matches pattern
+- Check Workload Identity Federation configuration
+
+**Missing mise tasks:**
+
+- Ensure all tasks in `mise-tasks` are defined in `mise.toml`
+- Run `mise tasks` locally to verify
+
+**Docker build failures:**
+
+- Verify `dockerfile-path` is correct
+- Check `docker-context` contains required files
+
+## Support
+
+- 🐛 [Report a bug](https://github.com/nais/actions/issues)
+- 💡 [Request a feature](https://github.com/nais/actions/issues)
+- 💬 [Discussions](https://github.com/nais/actions/discussions)
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file.
 - A `version` task (generates a version string)
 - A `build` task (builds your project)
 - Optional: quality check tasks (lint, test, etc.)
@@ -207,10 +484,11 @@ The calling workflow must have appropriate permissions:
 
 ```yaml
 permissions:
-  contents: read          # Required for checkout
+  contents: read          # Required for checkout (use 'write' if creates-git-tag: true)
   id-token: write         # Required for GCP authentication
-  contents: write         # Required only if creates-git-tag: true
 ```
+
+**Note:** If using `creates-git-tag: true`, you must set `contents: write` instead of `contents: read`.
 
 ### GCP Service Account Setup
 
@@ -243,9 +521,10 @@ The reusable workflow consists of the following jobs:
    Ratchet will automatically update the SHA while keeping the comment as a human-readable reference.
 
 2. **Use minimal permissions**: Only grant the permissions your workflow needs:
+
    ```yaml
    permissions:
-     contents: read
+     contents: read          # or 'write' if creates-git-tag: true
      id-token: write
    ```
 

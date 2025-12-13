@@ -56,10 +56,10 @@ on:
         type: string
         default: '.nais/app.yaml'
       nais-vars:
-        description: 'Path to NAIS environment variables (use ${{ matrix.cluster }} for multi-cluster)'
+        description: 'Path to NAIS environment variables (use .nais/<cluster>.yaml pattern for multi-cluster)'
         required: false
         type: string
-        default: '.nais/${{ matrix.cluster }}.yaml'
+        default: '.nais/dev-gcp.yaml'
       nais-clusters:
         description: 'JSON array of NAIS clusters to deploy to'
         required: false

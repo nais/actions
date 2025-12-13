@@ -1,0 +1,4 @@
+self-hosted-runner:
+  # Custom self-hosted runner labels used in this repository
+  labels:
+    - fasit-deploy

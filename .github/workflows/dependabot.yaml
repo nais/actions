@@ -2,7 +2,7 @@ name: Dependabot
 on: pull_request
 
 permissions:
-  pull-requests: write  # Required for the GitHub App to merge PRs
+  pull-requests: write # Required for the GitHub App to merge PRs
 
 jobs:
   auto-merge:

@@ -128,7 +128,9 @@ jobs:
           MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
         run: echo "version=$(mise run "$MISE_TASK_VERSION")" >> ${GITHUB_OUTPUT}
       - id: name
-        run: echo "name=${{ github.event.repository.name }}" >> ${GITHUB_OUTPUT}
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: echo "name=$REPO_NAME" >> ${GITHUB_OUTPUT}
 
   setup:
     name: Setup
@@ -293,9 +295,12 @@ jobs:
             type=sha
             type=raw,value=${{ needs.meta.outputs.version }}
       - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
+        env:
+          DOCKER_CONTEXT: ${{ inputs.docker-context }}
+          DOCKERFILE_PATH: ${{ inputs.dockerfile-path }}
         with:
-          context: ${{ inputs.docker-context }}
-          file: ${{ inputs.dockerfile-path }}
+          context: ${{ env.DOCKER_CONTEXT }}
+          file: ${{ env.DOCKERFILE_PATH }}
           push: ${{ github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -336,7 +341,10 @@ jobs:
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v2
         if: steps.auth.conclusion == 'success'
       - if: steps.auth.conclusion == 'success'
-        run: echo '${{ steps.auth.outputs.access_token }}' | docker login -u oauth2accesstoken --password-stdin https://${{ inputs.artifact-registry }}
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+        run: echo "$ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://$ARTIFACT_REGISTRY"
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # ratchet:azure/setup-helm@v4
         with:
           version: ${{ inputs.helm-version }}

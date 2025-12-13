@@ -119,10 +119,10 @@ jobs:
       image-base: ${{ inputs.artifact-registry }}/${{ inputs.artifact-repo }}/${{ steps.name.outputs.name }}
       image: ${{ inputs.artifact-registry }}/${{ inputs.artifact-repo }}/${{ steps.name.outputs.name }}:${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # ratchet:jdx/mise-action@v2
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - id: version
         env:
           MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
@@ -135,7 +135,7 @@ jobs:
     if: ${{ inputs.mise-setup-tasks != '[]' }}
     runs-on: ${{ inputs.runner-size }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
         with:
           path: |
@@ -158,7 +158,7 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # ratchet:jdx/mise-action@v2
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         env:
           MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
@@ -178,7 +178,7 @@ jobs:
         task: ${{ fromJson(inputs.mise-tasks) }}
     runs-on: ${{ inputs.runner-size }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
         with:
           path: |
@@ -201,7 +201,7 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # ratchet:jdx/mise-action@v2
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
@@ -222,7 +222,7 @@ jobs:
     if: ${{ always() && (needs.setup.result == 'success' || needs.setup.result == 'skipped') }}
     runs-on: ${{ inputs.runner-size }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
         with:
           path: |
@@ -245,7 +245,7 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # ratchet:jdx/mise-action@v2
+      - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
@@ -268,10 +268,10 @@ jobs:
     runs-on: ${{ inputs.runner-size-docker }}
     needs: [meta, lint, build]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - id: auth
         if: github.actor != 'dependabot[bot]'
-        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # ratchet:google-github-actions/auth@v2
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: gh-${{ github.event.repository.name }}@nais-io.iam.gserviceaccount.com
@@ -311,7 +311,7 @@ jobs:
     runs-on: ${{ inputs.runner-size }}
     needs: meta
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - name: Update Chart metadata
         env:
           CHART_PATH: ${{ inputs.chart-path }}
@@ -328,12 +328,12 @@ jobs:
           fi
       - id: auth
         if: github.actor != 'dependabot[bot]'
-        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # ratchet:google-github-actions/auth@v2
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: gh-${{ github.event.repository.name }}@nais-io.iam.gserviceaccount.com
           token_format: access_token
-      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # ratchet:google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # ratchet:google-github-actions/setup-gcloud@v2
         if: steps.auth.conclusion == 'success'
       - if: steps.auth.conclusion == 'success'
         run: echo '${{ steps.auth.outputs.access_token }}' | docker login -u oauth2accesstoken --password-stdin https://${{ inputs.artifact-registry }}
@@ -377,7 +377,7 @@ jobs:
       contents: write
     needs: meta
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - env:
           VERSION: ${{ needs.meta.outputs.version }}
         run: |

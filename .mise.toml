@@ -1,0 +1,10 @@
+[tools]
+actionlint = "latest"
+
+[tasks.lint]
+description = "Lint GitHub Actions workflows"
+run = "actionlint .github/workflows/*.yaml"
+
+[tasks."lint:verbose"]
+description = "Lint GitHub Actions workflows with verbose output"
+run = "actionlint -verbose .github/workflows/*.yaml"

@@ -297,12 +297,9 @@ jobs:
             type=sha
             type=raw,value=${{ needs.meta.outputs.version }}
       - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
-        env:
-          DOCKER_CONTEXT: ${{ inputs.docker-context }}
-          DOCKERFILE_PATH: ${{ inputs.dockerfile-path }}
         with:
-          context: ${{ env.DOCKER_CONTEXT }}
-          file: ${{ env.DOCKERFILE_PATH }}
+          context: ${{ inputs.docker-context }}
+          file: ${{ inputs.dockerfile-path }}
           push: ${{ github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}

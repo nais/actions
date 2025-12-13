@@ -129,7 +129,9 @@ jobs:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - id: version
-        run: echo "version=$(mise run ${{ inputs.mise-task-version }})" >> ${GITHUB_OUTPUT}
+        env:
+          MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
+        run: echo "version=$(mise run "$MISE_TASK_VERSION")" >> ${GITHUB_OUTPUT}
       - id: name
         run: echo "name=${{ github.event.repository.name }}" >> ${GITHUB_OUTPUT}
 
@@ -163,9 +165,10 @@ jobs:
             ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
@@ -206,14 +209,17 @@ jobs:
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
       - name: Run ${{ matrix.task }}
-        run: mise run ${{ matrix.task }}
+        env:
+          MISE_TASK: ${{ matrix.task }}
+        run: mise run "$MISE_TASK"
 
   build:
     name: Build
@@ -247,13 +253,16 @@ jobs:
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
-      - run: mise run ${{ inputs.mise-task-build }}
+      - env:
+          MISE_TASK_BUILD: ${{ inputs.mise-task-build }}
+        run: mise run "$MISE_TASK_BUILD"
 
   docker:
     name: Build Docker Image
@@ -345,6 +354,8 @@ jobs:
     needs: meta
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
-      - run: |
-          git tag ${{ needs.meta.outputs.version }}
-          git push origin ${{ needs.meta.outputs.version }}
+      - env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          git tag "$VERSION"
+          git push origin "$VERSION"

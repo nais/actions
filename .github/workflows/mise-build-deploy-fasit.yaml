@@ -124,7 +124,9 @@ jobs:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - id: version
-        run: echo "version=$(mise run ${{ inputs.mise-task-version }})" >> ${GITHUB_OUTPUT}
+        env:
+          MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
+        run: echo "version=$(mise run "$MISE_TASK_VERSION")" >> ${GITHUB_OUTPUT}
       - id: name
         run: echo "name=${{ github.event.repository.name }}" >> ${GITHUB_OUTPUT}
 
@@ -158,9 +160,10 @@ jobs:
             ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
@@ -201,14 +204,17 @@ jobs:
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
       - name: Run ${{ matrix.task }}
-        run: mise run ${{ matrix.task }}
+        env:
+          MISE_TASK: ${{ matrix.task }}
+        run: mise run "$MISE_TASK"
 
   build:
     name: Build
@@ -242,13 +248,16 @@ jobs:
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
+        env:
+          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
         run: |
-          tasks='${{ inputs.mise-setup-tasks }}'
-          echo "$tasks" | jq -r '.[]' | while read task; do
+          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
-      - run: mise run ${{ inputs.mise-task-build }}
+      - env:
+          MISE_TASK_BUILD: ${{ inputs.mise-task-build }}
+        run: mise run "$MISE_TASK_BUILD"
 
   docker:
     name: Build Docker Image
@@ -304,14 +313,18 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
       - name: Update Chart metadata
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ needs.meta.outputs.name }}
+          VERSION: ${{ needs.meta.outputs.version }}
         run: |
-          CHART_DIR="${{ inputs.chart-path }}/${{ needs.meta.outputs.name }}"
+          CHART_DIR="${CHART_PATH}/${CHART_NAME}"
           if [ -f "${CHART_DIR}/Chart.yaml" ]; then
-            sed -i "s/^version:.*$/version: ${{ needs.meta.outputs.version }}/g" "${CHART_DIR}/Chart.yaml"
-            sed -i "s/^appVersion:.*$/appVersion: ${{ needs.meta.outputs.version }}/g" "${CHART_DIR}/Chart.yaml"
+            sed -i "s/^version:.*$/version: ${VERSION}/g" "${CHART_DIR}/Chart.yaml"
+            sed -i "s/^appVersion:.*$/appVersion: ${VERSION}/g" "${CHART_DIR}/Chart.yaml"
           fi
           if [ -f "${CHART_DIR}/values.yaml" ]; then
-            sed -i "s/^    tag:.*$/    tag: ${{ needs.meta.outputs.version }}/g" "${CHART_DIR}/values.yaml"
+            sed -i "s/^    tag:.*$/    tag: ${VERSION}/g" "${CHART_DIR}/values.yaml"
           fi
       - id: auth
         if: github.actor != 'dependabot[bot]'
@@ -327,9 +340,16 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # ratchet:azure/setup-helm@v4
         with:
           version: ${{ inputs.helm-version }}
-      - run: helm package "${{ inputs.chart-path }}/${{ needs.meta.outputs.name }}" -d "${{ inputs.chart-path }}"
+      - env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ needs.meta.outputs.name }}
+        run: helm package "${CHART_PATH}/${CHART_NAME}" -d "${CHART_PATH}"
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success'
-        run: helm push "${{ inputs.chart-path }}"/*.tgz oci://${{ inputs.artifact-registry }}/${{ inputs.chart-repo }}
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+          CHART_REPO: ${{ inputs.chart-repo }}
+        run: helm push "${CHART_PATH}"/*.tgz oci://${ARTIFACT_REGISTRY}/${CHART_REPO}
 
   rollout:
     name: Deploy to Fasit
@@ -340,9 +360,14 @@ jobs:
     needs: [meta, docker, chart]
     steps:
       - uses: nais/fasit-deploy@8727ed1c7a5a465e837873e6016a9a692a6b874a # ratchet:nais/fasit-deploy@v2
+        env:
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+          CHART_REPO: ${{ inputs.chart-repo }}
+          CHART_NAME: ${{ needs.meta.outputs.name }}
+          VERSION: ${{ needs.meta.outputs.version }}
         with:
-          chart: oci://${{ inputs.artifact-registry }}/${{ inputs.chart-repo }}/${{ needs.meta.outputs.name }}
-          version: ${{ needs.meta.outputs.version }}
+          chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
+          version: ${{ env.VERSION }}
 
   tag:
     name: Create Git Tag
@@ -353,6 +378,8 @@ jobs:
     needs: meta
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # ratchet:actions/checkout@v4
-      - run: |
-          git tag ${{ needs.meta.outputs.version }}
-          git push origin ${{ needs.meta.outputs.version }}
+      - env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          git tag "$VERSION"
+          git push origin "$VERSION"

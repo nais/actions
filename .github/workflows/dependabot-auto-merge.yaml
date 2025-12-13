@@ -1,0 +1,45 @@
+name: Dependabot auto-merge
+
+on:
+  workflow_call:
+    secrets:
+      DEPENDABOT_AUTO_MERGE_APP_ID:
+        description: 'GitHub App ID for Dependabot auto-merge'
+        required: true
+      DEPENDABOT_AUTO_MERGE_APP_SECRET:
+        description: 'GitHub App private key for Dependabot auto-merge'
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dependabot:
+    name: Auto-merge Dependabot PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@dbb049abf0d677abbd7f7eee0375145b417fdd34 # ratchet:dependabot/fetch-metadata@v2.2.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate token
+        id: app-token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # ratchet:actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_ID }}
+          private-key: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_SECRET }}
+
+      - name: Authenticate gh CLI
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: echo "$GH_TOKEN" | gh auth login --with-token
+
+      - name: Enable auto-merge for Dependabot PRs
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

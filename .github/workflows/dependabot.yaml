@@ -1,0 +1,12 @@
+name: Dependabot
+on: pull_request
+
+permissions:
+  pull-requests: write  # Required for the GitHub App to merge PRs
+
+jobs:
+  auto-merge:
+    uses: ./.github/workflows/dependabot-auto-merge.yaml
+    secrets:
+      DEPENDABOT_AUTO_MERGE_APP_ID: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_ID }}
+      DEPENDABOT_AUTO_MERGE_APP_SECRET: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_SECRET }}

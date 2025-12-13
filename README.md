@@ -6,6 +6,7 @@ Reusable workflows for NAIS projects using [mise](https://mise.jdx.dev/) for tas
 
 - [⎈ mise-build-deploy-fasit.yaml](#-mise-build-deploy-fasityaml) - Fasit with Helm charts
 - [🚀 mise-build-deploy-nais.yaml](#-mise-build-deploy-naisyaml) - Standard NAIS deployment
+- [🤖 dependabot-auto-merge.yaml](#-dependabot-auto-mergeyaml) - Auto-merge Dependabot PRs
 - [Common Features](#common-features) · [Prerequisites](#prerequisites) · [Best Practices](#best-practices)
 
 ---
@@ -56,6 +57,48 @@ secrets:
 - ✅ Uses `.nais/app.yaml` manifests
 
 [View full documentation](#mise-build-deploy-naisyaml-1)
+
+---
+
+### 🤖 dependabot-auto-merge.yaml
+
+Automatically merge non-major Dependabot pull requests.
+
+```yaml
+uses: nais/actions/.github/workflows/dependabot-auto-merge.yaml@abc123 # ratchet:nais/actions/.github/workflows/dependabot-auto-merge.yaml@main
+secrets:
+  DEPENDABOT_AUTO_MERGE_APP_ID: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_ID }}
+  DEPENDABOT_AUTO_MERGE_APP_SECRET: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_SECRET }}
+```
+
+**Features:**
+
+- ✅ Auto-merges patch and minor version updates
+- ✅ Skips major version updates (manual review required)
+- ✅ Uses squash merge strategy
+- ✅ Requires GitHub App authentication
+
+**Setup:**
+
+1. **GitHub App**: Install the existing NAIS Dependabot auto-merge GitHub App in your repository (contact your GitHub org admin if needed)
+2. **Repository Secrets**: Ensure `DEPENDABOT_AUTO_MERGE_APP_ID` and `DEPENDABOT_AUTO_MERGE_APP_SECRET` are available (usually set at org level)
+3. **Workflow Permissions**: The calling workflow needs `pull-requests: write` permission
+4. Create `.github/workflows/dependabot.yaml`:
+
+```yaml
+name: Dependabot
+on: pull_request
+
+permissions:
+  pull-requests: write  # Required for the GitHub App to merge PRs
+
+jobs:
+  auto-merge:
+    uses: nais/actions/.github/workflows/dependabot-auto-merge.yaml@abc123 # ratchet:nais/actions/.github/workflows/dependabot-auto-merge.yaml@main
+    secrets:
+      DEPENDABOT_AUTO_MERGE_APP_ID: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_ID }}
+      DEPENDABOT_AUTO_MERGE_APP_SECRET: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_SECRET }}
+```
 
 ---
 

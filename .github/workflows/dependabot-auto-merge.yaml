@@ -22,13 +22,13 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@dbb049abf0d677abbd7f7eee0375145b417fdd34 # ratchet:dependabot/fetch-metadata@v2.2.0
+        uses: dependabot/fetch-metadata@08eff52bf64351f401fb50d4972fa95b9f2c2d1b # ratchet:dependabot/fetch-metadata@v2.4.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate token
         id: app-token
-        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # ratchet:actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # ratchet:actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_ID }}
           private-key: ${{ secrets.DEPENDABOT_AUTO_MERGE_APP_SECRET }}

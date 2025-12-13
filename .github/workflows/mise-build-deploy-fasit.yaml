@@ -89,7 +89,7 @@ on:
         description: 'GitHub Actions runner size for Docker builds'
         required: false
         type: string
-        default: 'ubuntu-latest-16-cores'
+        default: 'ubuntu-latest'
       helm-version:
         description: 'Helm version to use'
         required: false

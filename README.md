@@ -235,7 +235,7 @@ Both workflows share these inputs:
 | `artifact-registry`  | Registry URL                                           | `europe-north1-docker.pkg.dev` |
 | `artifact-repo`      | Repository path                                        | `nais-io/nais/images`          |
 | `runner-size`        | Runner size                                            | `ubuntu-latest`                |
-| `runner-size-docker` | Docker runner size                                     | `ubuntu-latest-16-cores`       |
+| `runner-size-docker` | Docker runner size                                     | `ubuntu-latest`                |
 
 ## Common Outputs
 
@@ -470,7 +470,7 @@ jobs:
 | `artifact-repo`      | Docker repository name                                         | No       | `nais-io/nais/images`                                                                                         |
 | `chart-repo`         | Helm chart repository name                                     | No       | `nais-io/nais/charts`                                                                                         |
 | `runner-size`        | GitHub Actions runner size                                     | No       | `ubuntu-latest`                                                                                               |
-| `runner-size-docker` | GitHub Actions runner size for Docker builds                   | No       | `ubuntu-latest-16-cores`                                                                                      |
+| `runner-size-docker` | GitHub Actions runner size for Docker builds                   | No       | `ubuntu-latest`                                                                                               |
 | `helm-version`       | Helm version to use                                            | No       | `v3.16.3`                                                                                                     |
 
 ### Secrets

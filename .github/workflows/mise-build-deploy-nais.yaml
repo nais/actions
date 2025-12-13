@@ -99,7 +99,7 @@ on:
         description: 'GitHub Actions runner size for Docker builds'
         required: false
         type: string
-        default: 'ubuntu-latest-16-cores'
+        default: 'ubuntu-latest'
     secrets:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER:
         required: false

@@ -1,5 +1,6 @@
 [tools]
 actionlint = "latest"
+"go:github.com/sethvargo/ratchet" = "latest"
 
 [tasks.lint]
 description = "Lint GitHub Actions workflows"
@@ -8,3 +9,15 @@ run = "actionlint .github/workflows/*.yaml"
 [tasks."lint:verbose"]
 description = "Lint GitHub Actions workflows with verbose output"
 run = "actionlint -verbose .github/workflows/*.yaml"
+
+[tasks.ratchet]
+description = "Update pinned GitHub Actions to latest versions"
+run = "ratchet update .github/workflows/*.yaml"
+
+[tasks."ratchet:lint"]
+description = "Check if pinned GitHub Actions are up to date"
+run = "ratchet lint .github/workflows/*.yaml"
+
+[tasks."ratchet:pin"]
+description = "Pin GitHub Actions to specific SHA commits"
+run = "ratchet pin .github/workflows/*.yaml"

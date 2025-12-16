@@ -56,10 +56,10 @@ on:
         type: string
         default: '.nais/app.yaml'
       nais-vars:
-        description: 'Path to NAIS environment variables (use .nais/<cluster>.yaml pattern for multi-cluster)'
+        description: 'Path to NAIS environment variables. Use {cluster} placeholder for multi-cluster (e.g., .nais/{cluster}.yaml)'
         required: false
         type: string
-        default: '.nais/dev-gcp.yaml'
+        default: '.nais/{cluster}.yaml'
       nais-clusters:
         description: 'JSON array of NAIS clusters to deploy to'
         required: false
@@ -323,12 +323,20 @@ jobs:
         cluster: ${{ fromJson(inputs.nais-clusters) }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
+      - name: Resolve vars path
+        id: vars
+        env:
+          NAIS_VARS_PATTERN: ${{ inputs.nais-vars }}
+          CLUSTER: ${{ matrix.cluster }}
+        run: |
+          VARS_PATH="${NAIS_VARS_PATTERN//\{cluster\}/$CLUSTER}"
+          echo "path=$VARS_PATH" >> $GITHUB_OUTPUT
       - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1 # ratchet:nais/deploy/actions/deploy@v2
         env:
           CLUSTER: ${{ matrix.cluster }}
           TEAM: ${{ inputs.nais-team }}
           RESOURCE: ${{ inputs.nais-resource }}
-          VARS: ${{ inputs.nais-vars }}
+          VARS: ${{ steps.vars.outputs.path }}
           VAR: image=${{ needs.meta.outputs.image }}
 
   deploy-pr:

@@ -224,22 +224,24 @@ jobs:
 
 ### Key Inputs
 
-| Input               | Description                                      | Default                                                            |
-| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
-| `deploys-to-nais`   | Enable NAIS deployment                           | `false`                                                            |
-| `nais-clusters`     | JSON array of clusters                           | `["dev-gcp"]`                                                      |
-| `nais-team`         | Team name                                        | `nais`                                                             |
-| `nais-resource`     | Path to app manifest                             | `.nais/app.yaml`                                                   |
-| `nais-vars`         | Path to cluster vars                             | `.nais/${{ matrix.cluster }}.yaml`                                 |
-| `deploy-pr-to-dev`  | Deploy PRs to dev                                | `false`                                                            |
-| `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install) | `[]`                                                               |
-| `mise-tasks`        | Quality check tasks                              | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
-| `mise-task-build`   | Build task name                                  | `build`                                                            |
-| `mise-task-version` | Version task name                                | `version`                                                          |
+| Input               | Description                                        | Default                                                            |
+| ------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| `deploys-to-nais`   | Enable NAIS deployment                             | `false`                                                            |
+| `nais-clusters`     | JSON array of clusters                             | `["dev-gcp"]`                                                      |
+| `nais-team`         | Team name                                          | `nais`                                                             |
+| `nais-resource`     | Path to app manifest                               | `.nais/app.yaml`                                                   |
+| `nais-vars`         | Path to cluster vars (use `{cluster}` placeholder) | `.nais/{cluster}.yaml`                                             |
+| `deploy-pr-to-dev`  | Deploy PRs to dev                                  | `false`                                                            |
+| `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install)   | `[]`                                                               |
+| `mise-tasks`        | Quality check tasks                                | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
+| `mise-task-build`   | Build task name                                    | `build`                                                            |
+| `mise-task-version` | Version task name                                  | `version`                                                          |
 
 ### Required Setup
 
-1. **NAIS Manifests**: Create `.nais/app.yaml` and cluster-specific vars (e.g., `.nais/dev-gcp.yaml`)
+1. **NAIS Manifests**: Create `.nais/app.yaml` and cluster-specific vars
+   - For multi-cluster: `.nais/dev-gcp.yaml`, `.nais/prod-gcp.yaml`, etc.
+   - The `{cluster}` placeholder in `nais-vars` is automatically replaced with each cluster name
 2. **GCP Service Account**: `gh-{repo-name}@nais-io.iam.gserviceaccount.com`
 3. **Workload Identity**: Configure federation
 
@@ -254,13 +256,21 @@ with:
   nais-team: my-team
 ```
 
-**Custom manifests:**
+**Custom manifests and vars pattern:**
 
 ```yaml
 with:
   deploys-to-nais: true
   nais-resource: '.nais/nais.yaml'
-  nais-vars: '.nais/vars-${{ matrix.cluster }}.yaml'
+  nais-vars: '.nais/vars-{cluster}.yaml'  # Becomes .nais/vars-dev-gcp.yaml, .nais/vars-prod-gcp.yaml, etc.
+```
+
+**Same vars file for all clusters:**
+
+```yaml
+with:
+  deploys-to-nais: true
+  nais-vars: '.nais/common-vars.yaml'  # No {cluster} placeholder = same file for all
 ```
 
 ---

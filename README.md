@@ -180,6 +180,7 @@ jobs:
 | `deploys-to-fasit`  | Deploy to Fasit                                  | `false`                                                            |
 | `chart-path`        | Helm chart directory                             | `./charts`                                                         |
 | `chart-repo`        | Chart repository                                 | `nais-io/nais/charts`                                              |
+| `working-directory` | Working directory for monorepo support           | `.`                                                                |
 | `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install) | `[]`                                                               |
 | `mise-tasks`        | Quality check tasks                              | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
 | `mise-task-build`   | Build task name                                  | `build`                                                            |
@@ -232,6 +233,7 @@ jobs:
 | `nais-resource`     | Path to app manifest                               | `.nais/app.yaml`                                                   |
 | `nais-vars`         | Path to cluster vars (use `{cluster}` placeholder) | `.nais/{cluster}.yaml`                                             |
 | `deploy-pr-to-dev`  | Deploy PRs to dev                                  | `false`                                                            |
+| `working-directory` | Working directory for monorepo support             | `.`                                                                |
 | `mise-setup-tasks`  | Setup tasks to run before checks (e.g., install)   | `[]`                                                               |
 | `mise-tasks`        | Quality check tasks                                | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` |
 | `mise-task-build`   | Build task name                                    | `build`                                                            |
@@ -289,6 +291,7 @@ Both workflows share these inputs:
 | `artifact-repo`      | Repository path                                        | `nais-io/nais/images`          |
 | `runner-size`        | Runner size                                            | `ubuntu-latest`                |
 | `runner-size-docker` | Docker runner size                                     | `ubuntu-latest`                |
+| `working-directory`  | Working directory for monorepo support                 | `.`                            |
 
 ## Common Outputs
 
@@ -299,6 +302,58 @@ Both workflows share these inputs:
 | `image`   | Full image reference with tag |
 
 ---
+
+## Monorepo Support
+
+Both workflows support monorepo setups via the `working-directory` input. This allows you to run all mise tasks, builds, and deployments from within a specific subdirectory:
+
+```yaml
+jobs:
+  service-a:
+    uses: nais/actions/.github/workflows/mise-build-deploy-nais.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-nais.yaml@main
+    with:
+      working-directory: 'apps/service-a'
+      deploys-to-nais: true
+      nais-team: my-team
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+
+  service-b:
+    uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@abc123 # ratchet:nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@main
+    with:
+      working-directory: 'apps/service-b'
+      builds-chart: true
+      deploys-to-fasit: true
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+**Monorepo Structure Example:**
+
+```
+.
+├── apps/
+│   ├── service-a/
+│   │   ├── mise.toml
+│   │   ├── Dockerfile
+│   │   └── .nais/
+│   │       ├── app.yaml
+│   │       └── dev-gcp.yaml
+│   └── service-b/
+│       ├── mise.toml
+│       ├── Dockerfile
+│       └── charts/
+│           └── service-b/
+└── .github/
+    └── workflows/
+        └── build.yaml
+```
+
+**Important:** When using `working-directory`:
+- The `mise.toml` must be in the working directory
+- Docker paths (`dockerfile-path`, `docker-context`) are relative to the working directory
+- NAIS manifests and Helm charts should be in the working directory
+- Each service in the monorepo should have its own `mise.toml`
 
 ## Best Practices
 
@@ -324,6 +379,11 @@ Both workflows share these inputs:
    ```
 
 4. **Use Ratchet or Dependabot**: Keep workflow references updated
+
+5. **Monorepo best practices**:
+   - Keep each service's configuration in its own directory
+   - Use path filters to trigger workflows only when specific services change
+   - Consider using a matrix strategy for multiple services with similar configurations
 
 ## Troubleshooting
 

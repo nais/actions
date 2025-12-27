@@ -100,6 +100,11 @@ on:
         required: false
         type: string
         default: 'ubuntu-latest'
+      working-directory:
+        description: 'Working directory for monorepo support'
+        required: false
+        type: string
+        default: '.'
     secrets:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER:
         required: false
@@ -118,6 +123,9 @@ jobs:
   meta:
     name: Metadata
     runs-on: ${{ inputs.runner-size }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     outputs:
       version: ${{ steps.version.outputs.version }}
       name: ${{ steps.name.outputs.name }}
@@ -128,6 +136,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+        with:
+          experimental: true
       - id: version
         env:
           MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
@@ -141,6 +151,9 @@ jobs:
     name: Setup
     if: ${{ inputs.mise-setup-tasks != '[]' }}
     runs-on: ${{ inputs.runner-size }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
@@ -166,6 +179,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+        with:
+          experimental: true
       - name: Run setup tasks
         env:
           MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
@@ -184,6 +199,9 @@ jobs:
       matrix:
         task: ${{ fromJson(inputs.mise-tasks) }}
     runs-on: ${{ inputs.runner-size }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
@@ -209,6 +227,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+        with:
+          experimental: true
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
@@ -228,6 +248,9 @@ jobs:
     needs: [setup]
     if: ${{ always() && (needs.setup.result == 'success' || needs.setup.result == 'skipped') }}
     runs-on: ${{ inputs.runner-size }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v4
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # ratchet:actions/cache@v4
@@ -253,6 +276,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
       - uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # ratchet:jdx/mise-action@v2
+        with:
+          experimental: true
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
@@ -303,8 +328,8 @@ jobs:
             type=raw,value=${{ needs.meta.outputs.version }}
       - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # ratchet:docker/build-push-action@v6
         with:
-          context: ${{ inputs.docker-context }}
-          file: ${{ inputs.dockerfile-path }}
+          context: ${{ inputs.working-directory != '.' && format('{0}/{1}', inputs.working-directory, inputs.docker-context) || inputs.docker-context }}
+          file: ${{ inputs.working-directory != '.' && format('{0}/{1}', inputs.working-directory, inputs.dockerfile-path) || inputs.dockerfile-path }}
           push: ${{ github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}

@@ -11,112 +11,112 @@ on:
   workflow_call:
     inputs:
       mise-task-version:
-        description: 'mise task name for version generation'
+        description: "mise task name for version generation"
         required: false
         type: string
-        default: 'version'
+        default: "version"
       mise-setup-tasks:
         description: 'JSON array of mise setup tasks to run sequentially before other tasks (e.g., ["install:ts", "install:go"])'
         required: false
         type: string
-        default: '[]'
+        default: "[]"
       mise-tasks:
         description: 'JSON array of mise tasks to run in parallel (e.g., ["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"])'
         required: false
         type: string
         default: '["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]'
       mise-task-build:
-        description: 'mise task name for building'
+        description: "mise task name for building"
         required: false
         type: string
-        default: 'build'
+        default: "build"
       builds-docker:
-        description: 'Build and push Docker image'
+        description: "Build and push Docker image"
         required: false
         type: boolean
         default: true
       dockerfile-path:
-        description: 'Path to Dockerfile'
+        description: "Path to Dockerfile"
         required: false
         type: string
-        default: './Dockerfile'
+        default: "./Dockerfile"
       docker-context:
-        description: 'Docker build context'
+        description: "Docker build context"
         required: false
         type: string
-        default: '.'
+        default: "."
       builds-chart:
-        description: 'Build and push Helm chart'
+        description: "Build and push Helm chart"
         required: false
         type: boolean
         default: false
       chart-path:
-        description: 'Path to Helm chart directory'
+        description: "Path to Helm chart directory"
         required: false
         type: string
-        default: './charts'
+        default: "./charts"
       deploys-to-fasit:
-        description: 'Deploy to Fasit'
+        description: "Deploy to Fasit"
         required: false
         type: boolean
         default: false
       creates-git-tag:
-        description: 'Create and push git tag'
+        description: "Create and push git tag"
         required: false
         type: boolean
         default: false
       artifact-registry:
-        description: 'Docker registry for artifacts'
+        description: "Docker registry for artifacts"
         required: false
         type: string
-        default: 'europe-north1-docker.pkg.dev'
+        default: "europe-north1-docker.pkg.dev"
       artifact-repo:
-        description: 'Docker repository name'
+        description: "Docker repository name"
         required: false
         type: string
-        default: 'nais-io/nais/images'
+        default: "nais-io/nais/images"
       chart-repo:
-        description: 'Helm chart repository name'
+        description: "Helm chart repository name"
         required: false
         type: string
-        default: 'nais-io/nais/charts'
+        default: "nais-io/nais/charts"
       runner-size:
-        description: 'GitHub Actions runner size'
+        description: "GitHub Actions runner size"
         required: false
         type: string
-        default: 'ubuntu-latest'
+        default: "ubuntu-latest"
       runner-size-docker:
-        description: 'GitHub Actions runner size for Docker builds'
+        description: "GitHub Actions runner size for Docker builds"
         required: false
         type: string
-        default: 'ubuntu-latest'
+        default: "ubuntu-latest"
       helm-version:
-        description: 'Helm version to use'
+        description: "Helm version to use"
         required: false
         type: string
-        default: 'v3.16.3'
+        default: "v3.16.3"
       mise-env:
-        description: 'Export environment variables from mise.toml into GITHUB_ENV'
+        description: "Export environment variables from mise.toml into GITHUB_ENV"
         required: false
         type: boolean
         default: false
       working-directory:
-        description: 'Working directory for monorepo support'
+        description: "Working directory for monorepo support"
         required: false
         type: string
-        default: '.'
+        default: "."
     secrets:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER:
         required: false
     outputs:
       version:
-        description: 'Generated version string'
+        description: "Generated version string"
         value: ${{ jobs.meta.outputs.version }}
       name:
-        description: 'Repository name'
+        description: "Repository name"
         value: ${{ jobs.meta.outputs.name }}
       image:
-        description: 'Full Docker image reference with tag'
+        description: "Full Docker image reference with tag"
         value: ${{ jobs.meta.outputs.image }}
 
 jobs:
@@ -141,8 +141,8 @@ jobs:
           env: ${{ inputs.mise-env }}
       - id: version
         env:
-          MISE_TASK_VERSION: ${{ inputs.mise-task-version }}
-        run: echo "version=$(mise run "$MISE_TASK_VERSION")" >> ${GITHUB_OUTPUT}
+          VERSION_TASK_NAME: ${{ inputs.mise-task-version }}
+        run: echo "version=$(mise run "$VERSION_TASK_NAME")" >> ${GITHUB_OUTPUT}
       - id: name
         env:
           REPO_NAME: ${{ github.event.repository.name }}
@@ -185,9 +185,9 @@ jobs:
           env: ${{ inputs.mise-env }}
       - name: Run setup tasks
         env:
-          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
+          SETUP_TASK_NAMES: ${{ inputs.mise-setup-tasks }}
         run: |
-          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
+          echo "$SETUP_TASK_NAMES" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
@@ -235,16 +235,16 @@ jobs:
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
-          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
+          SETUP_TASKS_NAMES: ${{ inputs.mise-setup-tasks }}
         run: |
-          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
+          echo "$SETUP_TASKS_NAMES" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
       - name: Run ${{ matrix.task }}
         env:
-          MISE_TASK: ${{ matrix.task }}
-        run: mise run "$MISE_TASK"
+          TASK_NAME: ${{ matrix.task }}
+        run: mise run "$TASK_NAME"
 
   build:
     name: Build
@@ -285,15 +285,15 @@ jobs:
       - name: Run setup tasks
         if: ${{ inputs.mise-setup-tasks != '[]' }}
         env:
-          MISE_SETUP_TASKS: ${{ inputs.mise-setup-tasks }}
+          SETUP_TASKS_NAMES: ${{ inputs.mise-setup-tasks }}
         run: |
-          echo "$MISE_SETUP_TASKS" | jq -r '.[]' | while read task; do
+          echo "$SETUP_TASKS_NAMES" | jq -r '.[]' | while read task; do
             echo "Running setup task: $task"
             mise run "$task"
           done
       - env:
-          MISE_TASK_BUILD: ${{ inputs.mise-task-build }}
-        run: mise run "$MISE_TASK_BUILD"
+          BUILD_TASK_NAME: ${{ inputs.mise-task-build }}
+        run: mise run "$BUILD_TASK_NAME"
 
   docker:
     name: Build Docker Image

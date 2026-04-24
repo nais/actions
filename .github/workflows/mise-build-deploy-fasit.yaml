@@ -297,7 +297,7 @@ jobs:
 
   docker:
     name: Build Docker Image
-    if: ${{ inputs.builds-docker }}
+    if: ${{ !failure() && !cancelled() && inputs.builds-docker }}
     permissions:
       contents: read
       id-token: write
@@ -395,7 +395,7 @@ jobs:
 
   rollout:
     name: Deploy to Fasit
-    if: ${{ inputs.deploys-to-fasit && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ !failure() && !cancelled() && inputs.deploys-to-fasit && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: fasit-deploy
     permissions:
       id-token: write

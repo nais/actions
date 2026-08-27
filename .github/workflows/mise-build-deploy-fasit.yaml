@@ -332,7 +332,7 @@ jobs:
         with:
           context: ${{ inputs.working-directory != '.' && format('{0}/{1}', inputs.working-directory, inputs.docker-context) || inputs.docker-context }}
           file: ${{ inputs.working-directory != '.' && format('{0}/{1}', inputs.working-directory, inputs.dockerfile-path) || inputs.dockerfile-path }}
-          push: ${{ github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success' }}
+          push: ${{ steps.auth.conclusion == 'success' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
@@ -386,7 +386,7 @@ jobs:
           CHART_PATH: ${{ inputs.chart-path }}
           CHART_NAME: ${{ needs.meta.outputs.name }}
         run: helm package "${CHART_PATH}/${CHART_NAME}" -d "${CHART_PATH}"
-      - if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.auth.conclusion == 'success'
+      - if: github.event_name == 'push' && steps.auth.conclusion == 'success'
         env:
           CHART_PATH: ${{ inputs.chart-path }}
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}

@@ -386,7 +386,7 @@ jobs:
           CHART_PATH: ${{ inputs.chart-path }}
           CHART_NAME: ${{ needs.meta.outputs.name }}
         run: helm package "${CHART_PATH}/${CHART_NAME}" -d "${CHART_PATH}"
-      - if: github.event_name == 'push' && steps.auth.conclusion == 'success'
+      - if: steps.auth.conclusion == 'success'
         env:
           CHART_PATH: ${{ inputs.chart-path }}
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}

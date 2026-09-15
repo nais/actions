@@ -22,6 +22,11 @@ uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@abc123 # ratch
 with:
   builds-chart: true
   deploys-to-fasit: true
+  targets: |
+    [
+      { "target": { "kind": "management", "tenant": "ci-nais" }, "wait": true },
+      { "target": { "kind": "management" } }
+    ]
 secrets:
   NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 ```
@@ -168,6 +173,11 @@ jobs:
       deploys-to-fasit: true
       chart-path: './charts'
       mise-tasks: '["lint", "test"]'
+      targets: |
+        [
+          { "target": { "kind": "management", "tenant": "ci-nais" }, "wait": true },
+          { "target": { "kind": "management" } }
+        ]
     secrets:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 ```
@@ -324,6 +334,11 @@ jobs:
       working-directory: 'apps/service-b'
       builds-chart: true
       deploys-to-fasit: true
+      targets: |
+        [
+          { "target": { "kind": "management", "tenant": "ci-nais" }, "wait": true },
+          { "target": { "kind": "management" } }
+        ]
     secrets:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 ```

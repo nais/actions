@@ -100,6 +100,16 @@ on:
         required: false
         type: boolean
         default: false
+      targets:
+        description: "Inline JSON array of {target, wait} entries. Mutually exclusive with targets-file."
+        required: false
+        type: string
+        default: ""
+      targets-file:
+        description: "Path to a JSON file containing an array of {target, wait} entries. Mutually exclusive with targets."
+        required: false
+        type: string
+        default: ""
       working-directory:
         description: "Working directory for monorepo support"
         required: false
@@ -410,6 +420,8 @@ jobs:
         with:
           chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
           version: ${{ env.VERSION }}
+          targets: ${{ inputs.targets }}
+          targets-file: ${{ inputs.targets-file }}
 
   tag:
     name: Create Git Tag

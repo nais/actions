@@ -373,7 +373,7 @@ jobs:
             sed -i "s/^appVersion:.*$/appVersion: ${VERSION}/g" "${CHART_DIR}/Chart.yaml"
           fi
           if [ -f "${CHART_DIR}/values.yaml" ]; then
-            sed -i "s/^    tag:.*$/    tag: ${VERSION}/g" "${CHART_DIR}/values.yaml"
+            yq -i e ".image.tag |= ${VERSION}" "${CHART_DIR}/values.yaml"
           fi
       - id: auth
         if: github.actor != 'dependabot[bot]'

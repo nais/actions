@@ -369,9 +369,10 @@ jobs:
         run: |
           CHART_DIR="${CHART_PATH}/${CHART_NAME}"
           if [ -f "${CHART_DIR}/Chart.yaml" ]; then
-            sed -i "s/^version:.*$/version: ${VERSION}/g" "${CHART_DIR}/Chart.yaml"
-            sed -i "s/^appVersion:.*$/appVersion: ${VERSION}/g" "${CHART_DIR}/Chart.yaml"
+            yq -i e ".version |= strenv(VERSION)" "${CHART_DIR}/Chart.yaml"
+            yq -i e ".appVersion |= strenv(VERSION)" "${CHART_DIR}/Chart.yaml"
           fi
+
           if [ -f "${CHART_DIR}/values.yaml" ]; then
             yq -i e ".image.tag |= strenv(VERSION)" "${CHART_DIR}/values.yaml"
           fi

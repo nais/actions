@@ -152,7 +152,12 @@ jobs:
       - id: version
         env:
           VERSION_TASK_NAME: ${{ inputs.mise-task-version }}
-        run: echo "version=$(mise run "$VERSION_TASK_NAME")" >> ${GITHUB_OUTPUT}
+        run: |
+          if [ -n "$VERSION_TASK_NAME" ] && mise tasks ls 2>/dev/null | grep -qx "$VERSION_TASK_NAME"; then
+            echo "version=$(mise run "$VERSION_TASK_NAME")" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(date +%Y%m%d%H%M%S)-$(git describe --always --dirty --exclude '*')" >> "$GITHUB_OUTPUT"
+          fi
       - id: name
         env:
           REPO_NAME: ${{ github.event.repository.name }}

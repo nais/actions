@@ -110,6 +110,11 @@ on:
         required: false
         type: string
         default: ""
+      deploy-pr-targets:
+        description: 'Inline JSON array of {target, wait} entries for PR deploys. When set, PRs labeled "deploy-dev-nais" deploy to these targets'
+        required: false
+        type: string
+        default: ""
       working-directory:
         description: "Working directory for monorepo support"
         required: false
@@ -428,6 +433,25 @@ jobs:
           version: ${{ env.VERSION }}
           targets: ${{ inputs.targets }}
           targets-file: ${{ inputs.targets-file }}
+
+  deploy-pr:
+    name: Deploy PR to dev
+    if: ${{ inputs.deploy-pr-targets != '' && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'deploy-dev-nais') }}
+    runs-on: fasit-deploy
+    permissions:
+      id-token: write
+    needs: [meta, docker, chart]
+    steps:
+      - uses: nais/fasit-deploy@53e433b1bdd08fc622e03a78584c0832c9083bd3 # ratchet:nais/fasit-deploy@v4.1.1
+        env:
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+          CHART_REPO: ${{ inputs.chart-repo }}
+          CHART_NAME: ${{ needs.meta.outputs.name }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        with:
+          chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
+          version: ${{ env.VERSION }}
+          targets: ${{ inputs.deploy-pr-targets }}
 
   tag:
     name: Create Git Tag

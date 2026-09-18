@@ -188,6 +188,7 @@ jobs:
 | ------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
 | `builds-chart`      | Build Helm chart                                 | `false`                                                            |
 | `deploys-to-fasit`  | Deploy to Fasit                                  | `false`                                                            |
+| `deploy-pr-targets` | PR deploy targets (enables PR deploys when set)  | `""`                                                               |
 | `chart-path`        | Helm chart directory                             | `./charts`                                                         |
 | `chart-repo`        | Chart repository                                 | `nais-io/nais/charts`                                              |
 | `working-directory` | Working directory for monorepo support           | `.`                                                                |
@@ -550,6 +551,39 @@ jobs:
       NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 ```
 
+#### PR Deployments to Dev
+
+Label a pull request with `deploy-dev-nais` to deploy its chart to a Fasit dev environment. Set `deploy-pr-targets` to choose where it goes — the input doubles as the enable flag (empty = disabled).
+
+```yaml
+name: Build and Deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    uses: nais/actions/.github/workflows/mise-build-deploy-fasit.yaml@main
+    with:
+      builds-chart: true
+      deploy-pr-targets: |
+        [ { "target": { "kind": "management", "tenant": "dev-nais" } } ]
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+**Notes:**
+
+- The caller workflow must trigger on `pull_request` with the `labeled` type, otherwise applying the label won't start a run.
+- `builds-chart: true` is required — without a chart, there is nothing to deploy.
+- Target labels (e.g. `kind`, `tenant`) depend on your feature; look up valid values in [Fasit](https://fasit.nais.io/labels).
+
 #### Custom Docker Configuration
 
 ```yaml
@@ -583,7 +617,7 @@ jobs:
 ### Inputs
 
 | Input                | Description                                                    | Required | Default                                                                                                       |
-| -------------------- | -------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+|----------------------|----------------------------------------------------------------|----------|---------------------------------------------------------------------------------------------------------------|
 | `mise-task-version`  | mise task name for version generation                          | No       | `version`                                                                                                     |
 | `mise-tasks`         | JSON array of mise tasks to run in parallel for quality checks | No       | `["tidy-check", "fmt-check", "lint", "vet", "check", "test-race"]` (Go defaults - customize for your project) |
 | `mise-task-build`    | mise task name for building                                    | No       | `build`                                                                                                       |
@@ -593,6 +627,7 @@ jobs:
 | `builds-chart`       | Build and push Helm chart                                      | No       | `false`                                                                                                       |
 | `chart-path`         | Path to Helm chart directory                                   | No       | `./charts`                                                                                                    |
 | `deploys-to-fasit`   | Deploy to Fasit                                                | No       | `false`                                                                                                       |
+| `deploy-pr-targets`  | PRs labeled "deploy-dev-nais" deploy to these targets          | No       | `""`                                                                                                          |
 | `creates-git-tag`    | Create and push git tag                                        | No       | `false`                                                                                                       |
 | `artifact-registry`  | Docker registry for artifacts                                  | No       | `europe-north1-docker.pkg.dev`                                                                                |
 | `artifact-repo`      | Docker repository name                                         | No       | `nais-io/nais/images`                                                                                         |

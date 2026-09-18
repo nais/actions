@@ -436,7 +436,7 @@ jobs:
 
   deploy-pr:
     name: Deploy PR to dev
-    if: ${{ inputs.deploy-pr-targets != '' && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'deploy-dev-nais') }}
+    if: ${{ inputs.deploy-pr-targets != '' && github.event_name == 'pull_request' && github.event.label.name == 'deploy-dev-nais' }}
     runs-on: fasit-deploy
     permissions:
       id-token: write

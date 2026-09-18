@@ -553,7 +553,7 @@ jobs:
 
 #### PR Deployments to Dev
 
-Label a pull request with `deploy-dev-nais` to deploy its chart to a Fasit dev environment. Set `deploy-pr-targets` to choose where it goes — the input doubles as the enable flag (empty = disabled).
+Label a pull request with `deploy-dev-nais` to deploy its chart to a Fasit dev environment. Set `deploy-pr-targets` to choose where it goes — the input doubles as the enable flag (empty = disabled). While the label is present the PR redeploys on every new push, not only when the label is first applied.
 
 ```yaml
 name: Build and Deploy
@@ -580,7 +580,7 @@ jobs:
 
 **Notes:**
 
-- The caller workflow must trigger on `pull_request` with the `labeled` type, otherwise applying the label won't start a run.
+- The caller workflow must trigger on `pull_request` with the `labeled` type, otherwise applying the label won't start a run. Deploys are gated on the PR's label list (`github.event.pull_request.labels`), so `synchronize` events on an already-labeled PR redeploy too.
 - `builds-chart: true` is required — without a chart, there is nothing to deploy.
 - Target labels (e.g. `kind`, `tenant`) depend on your feature; look up valid values in [Fasit](https://fasit.nais.io/labels).
 

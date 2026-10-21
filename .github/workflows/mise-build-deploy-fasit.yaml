@@ -55,6 +55,16 @@ on:
         required: false
         type: string
         default: "./charts"
+      chart-name:
+        description: "Helm chart name (chart dir under chart-path, and OCI chart ref). Defaults to the repository name."
+        required: false
+        type: string
+        default: ""
+      release-branch:
+        description: "Branch that triggers Fasit rollout and git tagging on push."
+        required: false
+        type: string
+        default: "main"
       deploys-to-fasit:
         description: "Deploy to Fasit"
         required: false
@@ -130,6 +140,9 @@ on:
       name:
         description: "Repository name"
         value: ${{ jobs.meta.outputs.name }}
+      release:
+        description: "Release name"
+        value: ${{ jobs.meta.outputs.chart-name }}
       image:
         description: "Full Docker image reference with tag"
         value: ${{ jobs.meta.outputs.image }}
@@ -144,6 +157,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       name: ${{ steps.name.outputs.name }}
+      chart-name: ${{ inputs.chart-name != '' && inputs.chart-name || steps.name.outputs.name }}
       image-base: ${{ inputs.artifact-registry }}/${{ inputs.artifact-repo }}/${{ steps.name.outputs.name }}
       image: ${{ inputs.artifact-registry }}/${{ inputs.artifact-repo }}/${{ steps.name.outputs.name }}:${{ steps.version.outputs.version }}
     steps:
@@ -374,7 +388,7 @@ jobs:
       - name: Update Chart metadata
         env:
           CHART_PATH: ${{ inputs.chart-path }}
-          CHART_NAME: ${{ needs.meta.outputs.name }}
+          CHART_NAME: ${{ needs.meta.outputs.chart-name }}
           VERSION: ${{ needs.meta.outputs.version }}
         run: |
           CHART_DIR="${CHART_PATH}/${CHART_NAME}"
@@ -405,7 +419,7 @@ jobs:
           version: ${{ inputs.helm-version }}
       - env:
           CHART_PATH: ${{ inputs.chart-path }}
-          CHART_NAME: ${{ needs.meta.outputs.name }}
+          CHART_NAME: ${{ needs.meta.outputs.chart-name }}
         run: helm package "${CHART_PATH}/${CHART_NAME}" -d "${CHART_PATH}"
       - if: steps.auth.conclusion == 'success'
         env:
@@ -416,7 +430,7 @@ jobs:
 
   rollout:
     name: Deploy to Fasit
-    if: ${{ !failure() && !cancelled() && inputs.deploys-to-fasit && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ !failure() && !cancelled() && inputs.deploys-to-fasit && github.event_name == 'push' && github.ref == format('refs/heads/{0}', inputs.release-branch) }}
     runs-on: fasit-deploy
     permissions:
       id-token: write
@@ -426,7 +440,7 @@ jobs:
         env:
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
           CHART_REPO: ${{ inputs.chart-repo }}
-          CHART_NAME: ${{ needs.meta.outputs.name }}
+          CHART_NAME: ${{ needs.meta.outputs.chart-name }}
           VERSION: ${{ needs.meta.outputs.version }}
         with:
           chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
@@ -450,7 +464,7 @@ jobs:
         env:
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
           CHART_REPO: ${{ inputs.chart-repo }}
-          CHART_NAME: ${{ needs.meta.outputs.name }}
+          CHART_NAME: ${{ needs.meta.outputs.chart-name }}
           VERSION: ${{ needs.meta.outputs.version }}
         with:
           chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
@@ -459,7 +473,7 @@ jobs:
 
   tag:
     name: Create Git Tag
-    if: ${{ inputs.creates-git-tag && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ inputs.creates-git-tag && github.event_name == 'push' && github.ref == format('refs/heads/{0}', inputs.release-branch) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

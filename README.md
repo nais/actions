@@ -124,7 +124,7 @@ Both workflows require a `mise.toml` with minimum tasks:
 
 ```toml
 [tasks.version]
-run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+run = 'echo "$(date +%Y%m%d)-g$(git rev-parse --short HEAD)"'
 
 [tasks.build]
 run = "go build -o bin/app ./cmd/app"
@@ -437,7 +437,7 @@ MIT License - see [LICENSE](LICENSE) file.
 ```toml
 [tasks.version]
 description = "Generate version string"
-run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+run = 'echo "$(date +%Y%m%d)-g$(git rev-parse --short HEAD)"'
 
 [tasks.build]
 description = "Build the application"
@@ -448,7 +448,7 @@ run = "go build -o bin/app ./cmd/app"
 
 ```toml
 [tasks.version]
-run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+run = 'echo "$(date +%Y%m%d)-g$(git rev-parse --short HEAD)"'
 
 [tasks.lint]
 run = "golangci-lint run"
@@ -464,7 +464,7 @@ run = "go build -o bin/app ./cmd/app"
 
 ```toml
 [tasks.version]
-run = 'echo "$(date +%Y%m%d)-$(git rev-parse --short HEAD)"'
+run = 'echo "$(date +%Y%m%d)-g$(git rev-parse --short HEAD)"'
 
 # Setup tasks - run before checks
 [tasks."install:ts"]

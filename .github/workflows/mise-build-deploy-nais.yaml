@@ -1,6 +1,6 @@
 # Reusable workflow for projects using mise
 # This workflow is language-agnostic and expects the following tasks to be defined in mise.toml:
-#   - version: Generate version string (e.g., YYYYMMDD-gitsha)
+#   - version: Generate version string (e.g., YYYYMMDD-g<gitsha>; the "g" keeps an all-digit SHA valid semver)
 #   - Individual tasks: Configurable quality checks (e.g., tidy-check, fmt-check, lint, vet, check, test-race for Go projects)
 #   - build: Build task for your project
 # Projects can customize behavior through mise.toml without modifying this workflow

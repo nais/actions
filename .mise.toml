@@ -1,6 +1,6 @@
 [tools]
 actionlint = "latest"
-"go:github.com/sethvargo/ratchet" = "latest"
+"go:github.com/sethvargo/ratchet" = "0.12.0"
 
 [tasks.lint]
 description = "Lint GitHub Actions workflows"

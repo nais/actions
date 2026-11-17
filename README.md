@@ -5,6 +5,7 @@ Reusable workflows for NAIS projects using [mise](https://mise.jdx.dev/) for tas
 ## Table of Contents
 
 - [⎈ mise-build-deploy-fasit.yaml](#-mise-build-deploy-fasityaml) - Fasit with Helm charts
+- [📦 chart-deploy-fasit.yaml](#-chart-deploy-fasityaml) - Helm chart only, no app build
 - [🚀 mise-build-deploy-nais.yaml](#-mise-build-deploy-naisyaml) - Standard NAIS deployment
 - [🤖 dependabot-auto-merge.yaml](#-dependabot-auto-mergeyaml) - Auto-merge Dependabot PRs
 - [Common Features](#common-features) · [Prerequisites](#prerequisites) · [Best Practices](#best-practices)
@@ -38,6 +39,29 @@ secrets:
 - ✅ Single-cluster deployment model
 
 [View full documentation](#mise-build-deploy-fasityaml-1)
+
+---
+
+### 📦 chart-deploy-fasit.yaml
+
+Chart-only deployment to Fasit: lint, package and push a Helm chart, then roll it out. No app build, no Docker image, no mise.
+
+```yaml
+uses: nais/actions/.github/workflows/chart-deploy-fasit.yaml@abc123 # ratchet:nais/actions/.github/workflows/chart-deploy-fasit.yaml@main
+with:
+  targets: |
+    [ { "target": { "kind": "management" } } ]
+secrets:
+  NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+**Features:**
+
+- ✅ Helm chart linting, packaging and publishing
+- ✅ Fasit deployment support
+- ✅ No `mise.toml` or build tasks required
+
+[View full documentation](#chart-deploy-fasityaml-1)
 
 ---
 
@@ -202,6 +226,62 @@ jobs:
 1. **Helm Chart**: Create chart in `./charts/{repo-name}/`
 2. **GCP Service Account**: `gh-{repo-name}@nais-io.iam.gserviceaccount.com`
 3. **Workload Identity**: Configure federation
+
+---
+
+## chart-deploy-fasit.yaml
+
+Chart-only deployment to Fasit. Use this when the repository contains just a Helm chart (e.g. PrometheusRules or other cluster YAML) and there is no application to build.
+
+### Quick Start
+
+```yaml
+name: Deploy chart
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: nais/actions/.github/workflows/chart-deploy-fasit.yaml@abc123 # ratchet:nais/actions/.github/workflows/chart-deploy-fasit.yaml@main
+    with:
+      targets: |
+        [ { "target": { "kind": "management" } } ]
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+```
+
+### Key Inputs
+
+| Input               | Description                                                       | Default                          |
+| ------------------- | ----------------------------------------------------------------- | -------------------------------- |
+| `chart-path`        | Helm chart directory                                              | `./charts`                       |
+| `chart-name`        | Chart dir under chart-path, and OCI chart ref                     | repository name                  |
+| `chart-repo`        | Chart repository                                                  | `nais-io/nais/charts`            |
+| `artifact-registry` | OCI registry for charts                                           | `europe-north1-docker.pkg.dev`   |
+| `helm-version`      | Helm version to use                                               | `v3.16.3`                        |
+| `release-branch`    | Branch that triggers Fasit rollout on push                        | `main`                           |
+| `targets`           | Inline JSON array of {target, wait} entries                       | `""`                             |
+| `targets-file`      | Path to a JSON file with targets (mutually exclusive with `targets`) | `""`                          |
+
+### Outputs
+
+| Output    | Description              |
+| --------- | ------------------------ |
+| `version` | Generated version string |
+| `release` | Helm chart name          |
+
+### Required Setup
+
+1. **Helm Chart**: Create chart in `./charts/{chart-name}/` (defaults to the repository name). The `name` in Chart.yaml must match, since the rollout pulls `oci://{artifact-registry}/{chart-repo}/{chart-name}` - the workflow fails fast on a mismatch.
+2. **GCP Service Account**: `gh-{repo-name}@nais-io.iam.gserviceaccount.com`
+3. **Workload Identity**: Configure federation
+
+The chart is linted and packaged on every run, but only pushed when GCP authentication succeeds, so Dependabot and fork PRs only validate the chart. Rollout happens on pushes to `release-branch`.
 
 ---
 

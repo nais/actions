@@ -1,0 +1,159 @@
+# Reusable workflow for deploying a Helm chart to Fasit
+# No application build, no Docker image - just package, push, and roll out.
+# For charts that ship alongside an app, use mise-build-deploy-fasit.yaml instead.
+
+name: Deploy Helm chart to Fasit
+
+on:
+  workflow_call:
+    inputs:
+      chart-path:
+        description: "Path to Helm chart directory"
+        required: false
+        type: string
+        default: "./charts"
+      chart-name:
+        description: "Helm chart name (chart dir under chart-path, and OCI chart ref). Defaults to the repository name."
+        required: false
+        type: string
+        default: ""
+      chart-repo:
+        description: "Helm chart repository name"
+        required: false
+        type: string
+        default: "nais-io/nais/charts"
+      artifact-registry:
+        description: "OCI registry for charts"
+        required: false
+        type: string
+        default: "europe-north1-docker.pkg.dev"
+      helm-version:
+        description: "Helm version to use"
+        required: false
+        type: string
+        default: "v3.16.3"
+      release-branch:
+        description: "Branch that triggers Fasit rollout on push."
+        required: false
+        type: string
+        default: "main"
+      targets:
+        description: "Inline JSON array of {target, wait} entries. Mutually exclusive with targets-file."
+        required: false
+        type: string
+        default: ""
+      targets-file:
+        description: "Path to a JSON file containing an array of {target, wait} entries. Mutually exclusive with targets."
+        required: false
+        type: string
+        default: ""
+    secrets:
+      NAIS_IO_WORKLOAD_IDENTITY_PROVIDER:
+        required: false
+    outputs:
+      version:
+        description: "Generated version string"
+        value: ${{ jobs.chart.outputs.version }}
+      release:
+        description: "Helm chart name"
+        value: ${{ jobs.chart.outputs.release }}
+
+jobs:
+  chart:
+    name: Build Helm Chart
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      release: ${{ steps.meta.outputs.chart-name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: meta
+        env:
+          CHART_NAME_INPUT: ${{ inputs.chart-name }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          echo "version=$(date +%Y%m%d%H%M%S)-g$(git describe --always --dirty --exclude '*')" >> "$GITHUB_OUTPUT"
+          echo "chart-name=${CHART_NAME_INPUT:-$REPO_NAME}" >> "$GITHUB_OUTPUT"
+      - name: Verify chart
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ steps.meta.outputs.chart-name }}
+        run: |
+          CHART_YAML="${CHART_PATH}/${CHART_NAME}/Chart.yaml"
+          if [ ! -f "$CHART_YAML" ]; then
+            echo "::error::No Chart.yaml found at ${CHART_YAML}"
+            exit 1
+          fi
+          ACTUAL_NAME=$(yq '.name' "$CHART_YAML")
+          if [ "$ACTUAL_NAME" != "$CHART_NAME" ]; then
+            echo "::error::name in ${CHART_YAML} is '${ACTUAL_NAME}', expected '${CHART_NAME}'"
+            exit 1
+          fi
+      - name: Stamp chart version
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ steps.meta.outputs.chart-name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          CHART_YAML="${CHART_PATH}/${CHART_NAME}/Chart.yaml"
+          yq -i e ".version |= strenv(VERSION)" "$CHART_YAML"
+          yq -i e ".appVersion |= strenv(VERSION)" "$CHART_YAML"
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # ratchet:azure/setup-helm@v5
+        with:
+          version: ${{ inputs.helm-version }}
+      - name: Lint chart
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ steps.meta.outputs.chart-name }}
+        run: helm lint "${CHART_PATH}/${CHART_NAME}"
+      - id: auth
+        if: github.actor != 'dependabot[bot]'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # ratchet:google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: gh-${{ github.event.repository.name }}@nais-io.iam.gserviceaccount.com
+          token_format: access_token
+      - if: steps.auth.conclusion == 'success'
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+        run: echo "$ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://$ARTIFACT_REGISTRY"
+      - name: Package chart
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ steps.meta.outputs.chart-name }}
+        run: helm package "${CHART_PATH}/${CHART_NAME}" -d "${CHART_PATH}"
+      - name: Push chart
+        if: steps.auth.conclusion == 'success'
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+          CHART_NAME: ${{ steps.meta.outputs.chart-name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+          CHART_REPO: ${{ inputs.chart-repo }}
+        run: helm push "${CHART_PATH}/${CHART_NAME}-${VERSION}.tgz" "oci://${ARTIFACT_REGISTRY}/${CHART_REPO}"
+
+  rollout:
+    name: Deploy to Fasit
+    if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', inputs.release-branch) }}
+    runs-on: fasit-deploy
+    permissions:
+      id-token: write
+    needs: chart
+    steps:
+      - uses: nais/fasit-deploy@53e433b1bdd08fc622e03a78584c0832c9083bd3 # ratchet:nais/fasit-deploy@v4.1.1
+        env:
+          ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
+          CHART_REPO: ${{ inputs.chart-repo }}
+          CHART_NAME: ${{ needs.chart.outputs.release }}
+          VERSION: ${{ needs.chart.outputs.version }}
+        with:
+          chart: oci://${{ env.ARTIFACT_REGISTRY }}/${{ env.CHART_REPO }}/${{ env.CHART_NAME }}
+          version: ${{ env.VERSION }}
+          targets: ${{ inputs.targets }}
+          targets-file: ${{ inputs.targets-file }}

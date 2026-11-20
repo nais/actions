@@ -37,6 +37,7 @@ secrets:
 - ✅ Helm chart packaging and publishing
 - ✅ Fasit deployment support
 - ✅ Single-cluster deployment model
+- ✅ SBOM generation and container image signing (via [nais/platform-build-push-sign](https://github.com/nais/platform-build-push-sign))
 
 [View full documentation](#mise-build-deploy-fasityaml-1)
 
@@ -778,7 +779,7 @@ The reusable workflow consists of the following jobs:
 1. **meta**: Generates version and repository metadata
 2. **lint**: Runs quality checks in parallel (configurable via `mise-tasks`)
 3. **build**: Builds the Go application
-4. **docker**: Builds and pushes Docker image (if `builds-docker: true`)
+4. **docker**: Builds, pushes, SBOM-attests and signs the Docker image via `nais/platform-build-push-sign` (if `builds-docker: true`)
 5. **chart**: Packages and pushes Helm chart (if `builds-chart: true`)
 6. **rollout**: Deploys to Fasit (if `deploys-to-fasit: true`)
 7. **tag**: Creates git tag (if `creates-git-tag: true`)

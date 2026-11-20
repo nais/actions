@@ -69,7 +69,7 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       release: ${{ steps.meta.outputs.chart-name }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           fetch-depth: 0
       - id: meta
@@ -103,7 +103,7 @@ jobs:
           CHART_YAML="${CHART_PATH}/${CHART_NAME}/Chart.yaml"
           yq -i e ".version |= strenv(VERSION)" "$CHART_YAML"
           yq -i e ".appVersion |= strenv(VERSION)" "$CHART_YAML"
-      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # ratchet:azure/setup-helm@v5
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # ratchet:azure/setup-helm@v5
         with:
           version: ${{ inputs.helm-version }}
       - name: Lint chart
@@ -146,7 +146,7 @@ jobs:
       id-token: write
     needs: chart
     steps:
-      - uses: nais/fasit-deploy@53e433b1bdd08fc622e03a78584c0832c9083bd3 # ratchet:nais/fasit-deploy@v4.1.1
+      - uses: nais/fasit-deploy@348660f1e34e6a0f9d2a4182a29ad1e55ebdbc5e # ratchet:nais/fasit-deploy@v4.0.0
         env:
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
           CHART_REPO: ${{ inputs.chart-repo }}

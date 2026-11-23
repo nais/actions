@@ -146,7 +146,7 @@ jobs:
       id-token: write
     needs: chart
     steps:
-      - uses: nais/fasit-deploy@348660f1e34e6a0f9d2a4182a29ad1e55ebdbc5e # ratchet:nais/fasit-deploy@v4.0.0
+      - uses: nais/fasit-deploy@53e433b1bdd08fc622e03a78584c0832c9083bd3 # ratchet:nais/fasit-deploy@v4.1.1
         env:
           ARTIFACT_REGISTRY: ${{ inputs.artifact-registry }}
           CHART_REPO: ${{ inputs.chart-repo }}
